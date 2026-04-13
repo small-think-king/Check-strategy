@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading App REAL FIX</title>
+
+<style>
+body {font-family: Arial; background:#020617; color:white; padding:20px;}
+.step {background:#0f172a; padding:12px; margin:8px 0; border-radius:8px;}
+button {width:100%; padding:15px; margin-top:10px; border:none; border-radius:8px; font-size:16px;}
+#done{background:#22c55e;}
+#calcBtn{background:#3b82f6;}
+input{width:100%; padding:8px; margin-top:5px;}
+
+#pinned {
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#111827;
+padding:12px;
+border-top:2px solid #22c55e;
+display:none;
+}
+
+canvas{background:white; margin-top:15px;}
+</style>
+</head>
+
+<body>
+
+<h2>Checklist</h2>
+
+<div class="step"><input type="checkbox" class="c"> Trend</div>
+<div class="step"><input type="checkbox" class="c"> AOI</div>
+<div class="step"><input type="checkbox" class="c"> Liquidity</div>
+<div class="step"><input type="checkbox" class="c"> CHoCH</div>
+<div class="step"><input type="checkbox" class="c"> SL</div>
+<div class="step"><input type="checkbox" class="c"> TP</div>
+
+<button id="done" onclick="startTrade()">DONE</button>
+
+<h2>💰 Risk Calculator</h2>
+
+<input id="bal" placeholder="Balance (e.g 22)">
+<input id="risk" placeholder="Risk % (e.g 2)">
+<input id="sl" placeholder="SL pips (e.g 20)">
+
+<button id="calcBtn" onclick="calculate()">CALCULATE</button>
+
+<div id="calcResult"></div>
+
+<h2>📈 Performance</h2>
+<canvas id="chart" width="300" height="150"></canvas>
+
+<div id="pinned">
+<b>TRADE OPEN</b><br><br>
+
+<select id="result">
+<option value="win">Win</option>
+<option value="loss">Loss</option>
+</select>
+
+<input id="amount" placeholder="Amount $">
+
+<button onclick="closeTrade()">CLOSE TRADE</button>
+</div>
+
+<script>
+
+let balance = parseFloat(localStorage.getItem("bal")) || 0;
+let history = JSON.parse(localStorage.getItem("hist")) || [];
+
+function save(){
+localStorage.setItem("bal", balance);
+localStorage.setItem("hist", JSON.stringify(history));
+}
+
+function startTrade(){
+let ok = true;
+document.querySelectorAll(".c").forEach(cb=>{
+if(!cb.checked) ok=false;
+});
+
+if(!ok){
+alert("Finish checklist first");
+return;
+}
+
+document.getElementById("pinned").style.display="block";
+}
+
+function closeTrade(){
+let amt = document.getElementById("amount").value;
+let res = document.getElementById("result").value;
+
+if(amt === "" || isNaN(amt)){
+alert("Enter valid amount");
+return;
+}
+
+amt = parseFloat(amt);
+
+if(res==="win") balance += amt;
+else balance -= amt;
+
+history.push(balance);
+save();
+drawChart();
+
+document.getElementById("pinned").style.display="none";
+document.getElementById("amount").value="";
+
+document.querySelectorAll(".c").forEach(cb=>cb.checked=false);
+}
+
+function calculate(){
+let b = document.getElementById("bal").value;
+let r = document.getElementById("risk").value;
+let sl = document.getElementById("sl").value;
+
+if(b===""||r===""||sl===""){
+document.getElementById("calcResult").innerHTML="Fill all fields";
+return;
+}
+
+b=parseFloat(b);
+r=parseFloat(r);
+sl=parseFloat(sl);
+
+let riskMoney = b*(r/100);
+let lot = riskMoney/(sl*0.1);
+let tp = sl*2;
+
+document.getElementById("calcResult").innerHTML =
+"💸 Risk: $"+riskMoney.toFixed(2)+"<br>📊 Lot: "+lot.toFixed(2)+"<br>🎯 TP: "+tp+" pips";
+}
+
+function drawChart(){
+let c = document.getElementById("chart");
+let ctx = c.getContext("2d");
+
+ctx.clearRect(0,0,300,150);
+
+if(history.length<2) return;
+
+let max=Math.max(...history);
+let min=Math.min(...history);
+
+if(max===min) return;
+
+for(let i=1;i<history.length;i++){
+let x1=(i-1)*30;
+let x2=i*30;
+
+let y1=150-((history[i-1]-min)/(max-min))*150;
+let y2=150-((history[i]-min)/(max-min))*150;
+
+ctx.beginPath();
+ctx.moveTo(x1,y1);
+ctx.lineTo(x2,y2);
+ctx.stroke();
+}
+}
+
+drawChart();
+
+</script>
+
+</body>
+</html>
